@@ -14,7 +14,15 @@ trait HasScala extends ScalaModule {
 }
 
 object services extends Module {
+  object events extends HasScala with Smithy4sModule {
+    def ivyDeps = Agg(
+      mvn"com.disneystreaming.smithy4s::smithy4s-core:${smithy4sVersion()}",
+    )
+  }
+
   object queries extends HasScala with Smithy4sModule {
+    def moduleDeps = Seq(events)
+
     def ivyDeps = Agg(
       mvn"com.disneystreaming.smithy4s::smithy4s-core:${smithy4sVersion()}",
       mvn"com.disneystreaming.smithy4s::smithy4s-http4s-swagger:${smithy4sVersion()}",

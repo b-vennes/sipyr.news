@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "outputDirectory": "build/output",
-  "sources": ["services/queries/smithy"],
+  "sources": ["services/queries/smithy", "services/events/smithy"],
   "maven": {
     "dependencies": [
       "com.disneystreaming.alloy:alloy-core:0.3.36"

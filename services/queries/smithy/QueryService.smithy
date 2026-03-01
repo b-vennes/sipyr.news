@@ -1,4 +1,4 @@
-$version: "2"
+$version: "2.0"
 namespace news.sipyr.queries
 
 use alloy#simpleRestJson
