@@ -17,3 +17,6 @@ vendor/
 
 # MacOS
 .DS_Store
+
+# Nova Editor
+.nova

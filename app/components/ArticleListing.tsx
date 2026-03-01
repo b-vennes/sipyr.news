@@ -12,7 +12,7 @@ export default function ArticleListing(props: Props) {
       className="
         border border-l-4 border-b-4 border-amber-400 rounded
         flex flex-row justify-between
-        bg-amber-300 hover:bg-amber-200
+        bg-amber-100 hover:bg-amber-200
         px-4
         py-1
       "

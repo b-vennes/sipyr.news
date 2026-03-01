@@ -4,12 +4,13 @@ export default define.page(function App({ Component }) {
   return (
     <html>
       <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>sipyr.news</title>
+        <meta charset="utf-8"/>
+        <title>Sipyr News</title>
       </head>
       <body>
-        <Component />
+        <div className="md:m-2 md:rounded-2xl bg-linear-to-bl from-violet-500 to-orange-100">
+          <Component/>
+        </div>
       </body>
     </html>
   );
