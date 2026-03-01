@@ -20,3 +20,14 @@ vendor/
 
 # Nova Editor
 .nova
+
+# mill
+out
+
+# Scala LSP
+.bloop
+.bsp
+.metals
+
+# Smithy LSP
+build
