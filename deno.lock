@@ -44,6 +44,7 @@
     "npm:preact@^10.28.4": "10.28.4",
     "npm:rollup@^4.50.0": "4.57.1",
     "npm:tailwindcss@^4.2.1": "4.2.1",
+    "npm:vite@^7.1.4": "7.3.1_@types+node@24.2.0_picomatch@4.0.3",
     "npm:vite@^7.3.1": "7.3.1_@types+node@24.2.0_picomatch@4.0.3"
   },
   "jsr": {
@@ -101,7 +102,8 @@
         "npm:@babel/preset-react",
         "npm:@mjackson/node-fetch-server",
         "npm:@prefresh/vite",
-        "npm:rollup"
+        "npm:rollup",
+        "npm:vite@^7.1.4"
       ]
     },
     "@std/bytes@1.0.6": {

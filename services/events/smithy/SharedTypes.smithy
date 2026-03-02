@@ -12,6 +12,11 @@ list SourceIDs {
   member: SourceID
 }
 
+structure EpochSeconds {
+  @required
+  secondsSinceEpoch: Long
+}
+
 structure RSSLocation {
   @required
   url: String
@@ -35,7 +40,7 @@ structure ArticleDefinition {
   url: String
 
   @required
-  date: String
+  date: EpochSeconds
 }
 
 list ArticleDefinitions {

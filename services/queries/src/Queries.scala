@@ -8,7 +8,7 @@ import news.sipyr.events.{SourceID, SourceIDs}
 object Main extends IOApp.Simple {
 
   val feeds: Feeds[IO] = new Feeds[IO] {
-    override def sources(feedName: String): IO[SourceIDs] =
+    override def sources(feedName: String, time: EpochSeconds): IO[SourceIDs] =
       IO(SourceIDs(List(
           SourceID(1),
           SourceID(2),
@@ -29,7 +29,7 @@ object Main extends IOApp.Simple {
           "Test Author",
           "Source Name",
           "Source URL",
-          "03-01-2026"
+          EpochSeconds.fromStringUnsafe("03-01-2026")
         )
       )))
   }

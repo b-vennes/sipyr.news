@@ -32,7 +32,7 @@ structure Article {
   url: String
 
   @required
-  date: String
+  date: EpochSeconds
 }
 
 list Articles {

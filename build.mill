@@ -26,7 +26,9 @@ object services extends Module {
     def ivyDeps = Agg(
       mvn"com.disneystreaming.smithy4s::smithy4s-core:${smithy4sVersion()}",
       mvn"com.disneystreaming.smithy4s::smithy4s-http4s-swagger:${smithy4sVersion()}",
-      mvn"org.http4s::http4s-ember-server:0.23.33"
+      mvn"org.http4s::http4s-ember-server:0.23.33",
+      mvn"org.tpolecat::skunk-core:0.6.5",
+      mvn"io.circe::circe-core:0.14.15"
     )
   }
 }
