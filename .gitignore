@@ -31,3 +31,6 @@ out
 
 # Smithy LSP
 build
+
+# JetBrains
+.idea
