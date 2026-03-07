@@ -2,9 +2,9 @@ services:
   database:
     image: postgres
     environment:
-      POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
     volumes:
       - ./database/initialize.sql:/docker-entrypoint-initdb.d/initialize.sql
+      - ./database/test-data.sql:/docker-entrypoint-initdb.d/test-data.sql
     ports:
       - 5432:5432

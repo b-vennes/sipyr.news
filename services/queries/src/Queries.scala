@@ -3,38 +3,33 @@ package news.sipyr.queries
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.{port, host}
 import org.http4s.ember.server.EmberServerBuilder
-import news.sipyr.events.{SourceID, SourceIDs}
+import skunk.Session
+import natchez.Trace.Implicits.noop
 
 object Main extends IOApp.Simple {
-
-  val feeds: Feeds[IO] = new Feeds[IO] {
-    override def sources(feedName: String, time: EpochSeconds): IO[SourceIDs] =
-      IO(SourceIDs(List(
-          SourceID(1),
-          SourceID(2),
-          SourceID(3)
-      )))
-  }
-
-  val sources: Sources[IO] = new Sources[IO] {
-    override def articles(
-      sources: SourceIDs,
-      initialized: EpochSeconds,
-      from: EpochSeconds,
-      to: EpochSeconds): IO[Articles] =
-      IO(Articles(List(
-        Article(
-          1,
-          "Test",
-          "Test Author",
-          "Source Name",
-          "Source URL",
-          EpochSeconds.fromStringUnsafe("03-01-2026")
-        )
-      )))
-  }
+  private val databaseHost: String =
+    sys.env.getOrElse("POSTGRES_HOST", "localhost")
+  private val databasePort: Int =
+    sys.env.get("POSTGRES_PORT").flatMap(_.toIntOption).getOrElse(5432)
+  private val databaseUser: String =
+    sys.env.getOrElse("POSTGRES_USER", "postgres")
+  private val databaseName: String =
+    sys.env.getOrElse("POSTGRES_DATABASE", "postgres")
+  private val databasePassword: String =
+    sys.env.getOrElse("POSTGRES_PASSWORD", "pass")
 
   def run = for {
+    eventStreams = EventStreams.usingSkunk(
+      Session.single[IO](
+        host = databaseHost,
+        port = databasePort,
+        user = databaseUser,
+        database = databaseName,
+        password = Some(databasePassword)
+      )
+    )
+    feeds = Feeds.usingEventStreams(eventStreams)
+    sources = Sources.usingEventStreams(eventStreams)
     _ <- Routes.all(feeds, sources)
     .flatMap { routes =>
       EmberServerBuilder

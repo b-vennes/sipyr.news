@@ -46,4 +46,6 @@ object Sources {
             .toArticles
       } yield articles
   }
+
+  def usingEventStreams(eventStreams: EventStreams[IO]): Sources[IO] = new UsingEventStreams(eventStreams)
 }
