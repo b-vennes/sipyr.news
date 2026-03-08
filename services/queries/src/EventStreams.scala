@@ -9,6 +9,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
+import java.time.OffsetDateTime
 
 trait EventStreams[F[_]] {
   def read(eventStream: EventStream, time: EpochSeconds): F[Chain[EventData]]
@@ -17,31 +18,42 @@ trait EventStreams[F[_]] {
 }
 
 object EventStreams {
-  private val logger = Slf4jLogger.getLogger[IO]
+  val logger = Slf4jLogger.getLogger[IO]
 
-  private final case class EventRow(typeName: String, index: Int, content: String)
+  final case class EventRow(
+    persistedAt: Long,
+    typeName: String,
+    streamName: String,
+    index: Int,
+    eventTypeName: String,
+    content: String)
 
-  private val readByStream: Query[(String, String, Int), EventRow] =
+  val readStream: Query[(Long, String, String), EventRow] =
     sql"""
-      SELECT type_name, stream_index, content::text
+      SELECT persisted_at, type_name, stream_name, stream_index, event_type_name, content::text
       FROM event_streams
-      WHERE stream_name = ${varchar(100)}
-        AND type_name = ${varchar(50)}
-        AND stream_index <= $int4
+      WHERE
+            persisted_at <= $int8
+        AND stream_name = ${varchar(128)}
+        AND type_name = ${varchar(64)}
       ORDER BY stream_index ASC
-    """.query(varchar(50) ~ int4 ~ text).map {
-      case typeName ~ index ~ content =>
-        EventRow(typeName, index, content)
+    """.query(int8 ~ varchar(64) ~ varchar(128) ~ int4 ~ varchar(64) ~ text).map {
+      case persistedAt ~ typeName ~ streamName ~ index ~ eventTypeName ~ content =>
+        EventRow(persistedAt, typeName, streamName, index, eventTypeName, content)
     }
 
   private class UsingSkunk(session: Resource[IO, Session[IO]]) extends EventStreams[IO] {
-    private val logger = Slf4jLogger.getLogger[IO]
+    val logger = Slf4jLogger.getLogger[IO]
 
     override def read(eventStream: EventStream, time: EpochSeconds): IO[Chain[EventData]] =
       session.use { session =>
-        session.prepare(readByStream).flatMap(
+        session.prepare(readStream).flatMap(
           _.stream(
-            (eventStream.id.streamName, eventStream.category.typeName, time.secondsSinceEpoch.toInt),
+            (
+              time.secondsSinceEpoch,
+              eventStream.id.streamName,
+              eventStream.category.typeName
+            ),
             128
           ).compile.toList
         )
@@ -49,7 +61,7 @@ object EventStreams {
         rows.traverse(decodeRow).map(Chain.fromSeq)
       ).onError { error =>
         logger.error(error)(
-          s"Failed to read events for stream=${eventStream.id.streamName} category=${eventStream.category.typeName} upToIndex=${time.secondsSinceEpoch}"
+          s"Failed to read events for stream=${eventStream.id.streamName} category=${eventStream.category.typeName} time=${time.secondsSinceEpoch}"
         )
       }
 
@@ -59,7 +71,7 @@ object EventStreams {
         .map(_.foldLeft(Chain.empty[EventData])(_ ++ _))
         .onError { error =>
           logger.error(error)(
-            s"Failed to read events for streamCount=${eventStreams.toList.size} upToIndex=${time.secondsSinceEpoch}"
+            s"Failed to read events for streamCount=${eventStreams.toList.size} time=${time.secondsSinceEpoch}"
           )
         }
   }
@@ -69,8 +81,11 @@ object EventStreams {
       case Right(content) =>
         IO.pure(
           EventData(
+            EventData.PersistedAt.fromEpochSeconds(EpochSeconds(row.persistedAt)),
             EventData.TypeName.fromString(row.typeName),
+            EventData.StreamName.fromString(row.streamName),
             EventData.Index.fromInt(row.index),
+            EventData.EventTypeName.fromString(row.eventTypeName),
             EventData.Content.fromJson(content)
           )
         )
