@@ -11,10 +11,10 @@ import java.time.OffsetDateTime
 val secondsInDay = 60 * 60 * 24
 
 extension (epochSeconds: EpochSeconds) {
-    def dayBefore: EpochSeconds =
-      EpochSeconds(
-        epochSeconds.secondsSinceEpoch - secondsInDay
-      )
+  def dayBefore: EpochSeconds =
+    EpochSeconds(
+      epochSeconds.secondsSinceEpoch - secondsInDay
+    )
 }
 
 extension (epochSeconds: EpochSeconds.type) {
@@ -29,7 +29,8 @@ extension (sourceIDs: SourceIDs.type) {
 }
 
 extension (sourceID: SourceID) {
-  def toEventStreamID: EventStream.ID = EventStream.ID.fromString(sourceID.value.toString())
+  def toEventStreamID: EventStream.ID =
+    EventStream.ID.fromString(sourceID.value.toString())
 }
 
 extension (articles: Articles) {
@@ -38,7 +39,9 @@ extension (articles: Articles) {
 }
 
 extension (articles: Articles.type) {
-  def fromChain(articlesChain: Chain[Article]): Articles = Articles(articlesChain.toList)
+  def fromChain(articlesChain: Chain[Article]): Articles = Articles(
+    articlesChain.toList
+  )
 
   def hydrate(events: Chain[EventData]): Articles = Articles(List.empty)
 }

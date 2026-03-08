@@ -9,36 +9,47 @@ import cats.implicits._
 
 trait Sources[F[_]] {
   def articles(
-    sources: SourceIDs,
-    initialized: EpochSeconds,
-    from: EpochSeconds,
-    to: EpochSeconds
+      sources: SourceIDs,
+      initialized: EpochSeconds,
+      from: EpochSeconds,
+      to: EpochSeconds
   ): F[Articles]
 }
 
 object Sources {
-  private class UsingEventStreams(eventStreams: EventStreams[IO]) extends Sources[IO] {
+  private class UsingEventStreams(eventStreams: EventStreams[IO])
+      extends Sources[IO] {
     override def articles(
-      sources: SourceIDs,
-      initialized: EpochSeconds,
-      from: EpochSeconds,
-      to: EpochSeconds): IO[Articles] =
+        sources: SourceIDs,
+        initialized: EpochSeconds,
+        from: EpochSeconds,
+        to: EpochSeconds
+    ): IO[Articles] =
       for {
         events <- eventStreams.readMany(
-          Chain.fromSeq(sources.value).map(sourceID =>
-            EventStream(
-              sourceID.toEventStreamID,
-              EventStream.Categories.sources
-            )
-          ),
-          initialized)
+          Chain
+            .fromSeq(sources.value)
+            .map(sourceID =>
+              EventStream(
+                sourceID.toEventStreamID,
+                EventStream.Categories.sources
+              )
+            ),
+          initialized
+        )
         articles =
           Articles
             .hydrate(events)
             .toChain
             .filter(article =>
-              (article.date.comparison(from), article.date.comparison(to)) match {
-                case (Comparison.EqualTo | Comparison.GreaterThan, Comparison.EqualTo | Comparison.LessThan) =>
+              (
+                article.date.comparison(from),
+                article.date.comparison(to)
+              ) match {
+                case (
+                      Comparison.EqualTo | Comparison.GreaterThan,
+                      Comparison.EqualTo | Comparison.LessThan
+                    ) =>
                   true
                 case _ => false
               }
@@ -47,5 +58,6 @@ object Sources {
       } yield articles
   }
 
-  def usingEventStreams(eventStreams: EventStreams[IO]): Sources[IO] = new UsingEventStreams(eventStreams)
+  def usingEventStreams(eventStreams: EventStreams[IO]): Sources[IO] =
+    new UsingEventStreams(eventStreams)
 }

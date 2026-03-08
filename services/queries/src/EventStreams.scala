@@ -14,19 +14,23 @@ import java.time.OffsetDateTime
 trait EventStreams[F[_]] {
   def read(eventStream: EventStream, time: EpochSeconds): F[Chain[EventData]]
 
-  def readMany(eventStreams: Chain[EventStream], time: EpochSeconds): F[Chain[EventData]]
+  def readMany(
+      eventStreams: Chain[EventStream],
+      time: EpochSeconds
+  ): F[Chain[EventData]]
 }
 
 object EventStreams {
   val logger = Slf4jLogger.getLogger[IO]
 
   final case class EventRow(
-    persistedAt: Long,
-    typeName: String,
-    streamName: String,
-    index: Int,
-    eventTypeName: String,
-    content: String)
+      persistedAt: Long,
+      typeName: String,
+      streamName: String,
+      index: Int,
+      eventTypeName: String,
+      content: String
+  )
 
   val readStream: Query[(Long, String, String), EventRow] =
     sql"""
@@ -37,35 +41,54 @@ object EventStreams {
         AND stream_name = ${varchar(128)}
         AND type_name = ${varchar(64)}
       ORDER BY stream_index ASC
-    """.query(int8 ~ varchar(64) ~ varchar(128) ~ int4 ~ varchar(64) ~ text).map {
-      case persistedAt ~ typeName ~ streamName ~ index ~ eventTypeName ~ content =>
-        EventRow(persistedAt, typeName, streamName, index, eventTypeName, content)
-    }
-
-  private class UsingSkunk(session: Resource[IO, Session[IO]]) extends EventStreams[IO] {
-    val logger = Slf4jLogger.getLogger[IO]
-
-    override def read(eventStream: EventStream, time: EpochSeconds): IO[Chain[EventData]] =
-      session.use { session =>
-        session.prepare(readStream).flatMap(
-          _.stream(
-            (
-              time.secondsSinceEpoch,
-              eventStream.id.streamName,
-              eventStream.category.typeName
-            ),
-            128
-          ).compile.toList
-        )
-      }.flatMap(rows =>
-        rows.traverse(decodeRow).map(Chain.fromSeq)
-      ).onError { error =>
-        logger.error(error)(
-          s"Failed to read events for stream=${eventStream.id.streamName} category=${eventStream.category.typeName} time=${time.secondsSinceEpoch}"
-        )
+    """
+      .query(int8 ~ varchar(64) ~ varchar(128) ~ int4 ~ varchar(64) ~ text)
+      .map {
+        case persistedAt ~ typeName ~ streamName ~ index ~ eventTypeName ~ content =>
+          EventRow(
+            persistedAt,
+            typeName,
+            streamName,
+            index,
+            eventTypeName,
+            content
+          )
       }
 
-    override def readMany(eventStreams: Chain[EventStream], time: EpochSeconds): IO[Chain[EventData]] =
+  private class UsingSkunk(session: Resource[IO, Session[IO]])
+      extends EventStreams[IO] {
+    val logger = Slf4jLogger.getLogger[IO]
+
+    override def read(
+        eventStream: EventStream,
+        time: EpochSeconds
+    ): IO[Chain[EventData]] =
+      session
+        .use { session =>
+          session
+            .prepare(readStream)
+            .flatMap(
+              _.stream(
+                (
+                  time.secondsSinceEpoch,
+                  eventStream.id.streamName,
+                  eventStream.category.typeName
+                ),
+                128
+              ).compile.toList
+            )
+        }
+        .flatMap(rows => rows.traverse(decodeRow).map(Chain.fromSeq))
+        .onError { error =>
+          logger.error(error)(
+            s"Failed to read events for stream=${eventStream.id.streamName} category=${eventStream.category.typeName} time=${time.secondsSinceEpoch}"
+          )
+        }
+
+    override def readMany(
+        eventStreams: Chain[EventStream],
+        time: EpochSeconds
+    ): IO[Chain[EventData]] =
       eventStreams
         .traverse(read(_, time))
         .map(_.foldLeft(Chain.empty[EventData])(_ ++ _))
@@ -81,7 +104,9 @@ object EventStreams {
       case Right(content) =>
         IO.pure(
           EventData(
-            EventData.PersistedAt.fromEpochSeconds(EpochSeconds(row.persistedAt)),
+            EventData.PersistedAt.fromEpochSeconds(
+              EpochSeconds(row.persistedAt)
+            ),
             EventData.TypeName.fromString(row.typeName),
             EventData.StreamName.fromString(row.streamName),
             EventData.Index.fromInt(row.index),

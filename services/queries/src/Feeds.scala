@@ -9,17 +9,21 @@ trait Feeds[F[_]] {
 }
 
 object Feeds {
-  private class UsingEventStreams(eventStreams: EventStreams[IO]) extends Feeds[IO] {
+  private class UsingEventStreams(eventStreams: EventStreams[IO])
+      extends Feeds[IO] {
     override def sources(feedName: String, time: EpochSeconds): IO[SourceIDs] =
       for {
         events <- eventStreams.read(
           EventStream(
             EventStream.ID.fromString(feedName),
-            EventStream.Categories.feeds),
-          time)
+            EventStream.Categories.feeds
+          ),
+          time
+        )
         sourceIDs = SourceIDs.hydrate(events)
       } yield sourceIDs
   }
 
-  def usingEventStreams(eventStreams: EventStreams[IO]): Feeds[IO] = new UsingEventStreams(eventStreams)
+  def usingEventStreams(eventStreams: EventStreams[IO]): Feeds[IO] =
+    new UsingEventStreams(eventStreams)
 }

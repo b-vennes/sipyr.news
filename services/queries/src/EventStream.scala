@@ -1,8 +1,8 @@
 package news.sipyr.queries
 
 final case class EventStream(
-  id: EventStream.ID,
-  category: EventStream.Category
+    id: EventStream.ID,
+    category: EventStream.Category
 )
 
 object EventStream {

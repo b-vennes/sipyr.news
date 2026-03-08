@@ -30,15 +30,16 @@ object Main extends IOApp.Simple {
     )
     feeds = Feeds.usingEventStreams(eventStreams)
     sources = Sources.usingEventStreams(eventStreams)
-    _ <- Routes.all(feeds, sources)
-    .flatMap { routes =>
-      EmberServerBuilder
-        .default[IO]
-        .withPort(port"9000")
-        .withHost(host"localhost")
-        .withHttpApp(routes.orNotFound)
-        .build
-    }
-    .use(_ => IO.never)
+    _ <- Routes
+      .all(feeds, sources)
+      .flatMap { routes =>
+        EmberServerBuilder
+          .default[IO]
+          .withPort(port"9000")
+          .withHost(host"localhost")
+          .withHttpApp(routes.orNotFound)
+          .build
+      }
+      .use(_ => IO.never)
   } yield ()
 }

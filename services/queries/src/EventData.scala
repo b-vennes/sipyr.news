@@ -3,12 +3,13 @@ package news.sipyr.queries
 import io.circe.Json
 
 final case class EventData(
-  persistedAt: EventData.PersistedAt,
-  typeName: EventData.TypeName,
-  streamName: EventData.StreamName,
-  index: EventData.Index,
-  eventTypeName: EventData.EventTypeName,
-  content: EventData.Content)
+    persistedAt: EventData.PersistedAt,
+    typeName: EventData.TypeName,
+    streamName: EventData.StreamName,
+    index: EventData.Index,
+    eventTypeName: EventData.EventTypeName,
+    content: EventData.Content
+)
 
 object EventData {
   opaque type PersistedAt = EpochSeconds

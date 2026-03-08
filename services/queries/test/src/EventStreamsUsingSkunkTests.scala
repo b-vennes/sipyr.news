@@ -62,23 +62,28 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
 
   def insertRows(rows: List[EventStreams.EventRow]): IO[Unit] =
     session.use { s =>
-      s.prepare(insertEvent).flatMap(command =>
-        rows.traverse_(row =>
-          command
-            .execute((
-              row.persistedAt,
-              row.typeName,
-              row.streamName,
-              row.index,
-              row.eventTypeName,
-              row.content
-            ))
-            .void
+      s.prepare(insertEvent)
+        .flatMap(command =>
+          rows.traverse_(row =>
+            command
+              .execute(
+                (
+                  row.persistedAt,
+                  row.typeName,
+                  row.streamName,
+                  row.index,
+                  row.eventTypeName,
+                  row.content
+                )
+              )
+              .void
+          )
         )
-      )
     }
 
-  test("read returns stream events in ascending time order up to the provided time") {
+  test(
+    "read returns stream events in ascending time order up to the provided time"
+  ) {
     val categoryName = UUID.randomUUID().toString()
     val streamName = UUID.randomUUID().toString()
 
@@ -136,14 +141,17 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
             EventStream.ID.fromString(streamName),
             EventStream.Category.fromString(categoryName)
           ),
-          EpochSeconds(2L))
+          EpochSeconds(2L)
+        )
     } yield assertEquals(
       result.toList,
       expected
     )
   }
 
-  test("readMany returns stream events from all streams in ascending time order up to the provided time") {
+  test(
+    "readMany returns stream events from all streams in ascending time order up to the provided time"
+  ) {
     val categoryName = UUID.randomUUID().toString()
     val streamName1 = UUID.randomUUID().toString()
     val streamName2 = UUID.randomUUID().toString()
@@ -224,7 +232,8 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
               EventStream.Category.fromString(categoryName)
             )
           ),
-          EpochSeconds(3L))
+          EpochSeconds(3L)
+        )
     } yield assertEquals(
       result.toList,
       expected
