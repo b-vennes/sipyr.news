@@ -24,10 +24,6 @@ extension (epochSeconds: EpochSeconds.type) {
     )
 }
 
-extension (sourceIDs: SourceIDs.type) {
-  def hydrate(events: Chain[EventData]): SourceIDs = SourceIDs(List.empty)
-}
-
 extension (sourceID: SourceID) {
   def toEventStreamID: EventStream.ID =
     EventStream.ID.fromString(sourceID.value.toString())
@@ -36,14 +32,6 @@ extension (sourceID: SourceID) {
 extension (articles: Articles) {
   @targetName("articlesToChain")
   def toChain: Chain[Article] = Chain.fromSeq(articles.value)
-}
-
-extension (articles: Articles.type) {
-  def fromChain(articlesChain: Chain[Article]): Articles = Articles(
-    articlesChain.toList
-  )
-
-  def hydrate(events: Chain[EventData]): Articles = Articles(List.empty)
 }
 
 extension (articlesChain: Chain[Article]) {

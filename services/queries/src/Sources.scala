@@ -38,7 +38,7 @@ object Sources {
           initialized
         )
         articles =
-          Articles
+          ArticlesExt
             .hydrate(events)
             .toChain
             .filter(article =>

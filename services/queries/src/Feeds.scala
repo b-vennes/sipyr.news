@@ -20,7 +20,7 @@ object Feeds {
           ),
           time
         )
-        sourceIDs = SourceIDs.hydrate(events)
+        sourceIDs = SourceIDsExt.hydrate(events)
       } yield sourceIDs
   }
 
