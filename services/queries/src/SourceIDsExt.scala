@@ -3,7 +3,6 @@ package news.sipyr.queries
 import news.sipyr.events.{
   FeedCreated,
   FeedEvent,
-  FeedID,
   MaintainerChanged,
   MaintainerID,
   SourceID,
@@ -16,12 +15,11 @@ import cats.data.Chain
 import io.circe.Decoder
 
 object SourceIDsExt {
-  private given Decoder[FeedID] = Decoder[Long].map(FeedID(_))
   private given Decoder[MaintainerID] = Decoder[Long].map(MaintainerID(_))
-  private given Decoder[SourceID] = Decoder[Long].map(SourceID(_))
+  private given Decoder[SourceID] = Decoder[String].map(SourceID(_))
 
   private given Decoder[FeedCreated] =
-    Decoder.forProduct4("id", "maintainer", "name", "sources")(FeedCreated(_, _, _, _))
+    Decoder.forProduct3("maintainer", "name", "sources")(FeedCreated(_, _, _))
   private given Decoder[SourcesAdded] =
     Decoder.forProduct1("sources")(SourcesAdded(_))
   private given Decoder[SourcesRemoved] =
@@ -79,7 +77,9 @@ object SourceIDsExt {
         )
       case FeedEvent.SourcesRemovedCase(removed) =>
         val removedSources = removed.sources.toSet
-        SourceIDs(aggregate.value.filterNot(source => removedSources.contains(source)))
+        SourceIDs(
+          aggregate.value.filterNot(source => removedSources.contains(source))
+        )
       case FeedEvent.MaintainerChangedCase(_) =>
         aggregate
     }

@@ -2,11 +2,9 @@ $version: "2.0"
 
 namespace news.sipyr.events
 
-long FeedID
-
 long MaintainerID
 
-long SourceID
+string SourceID
 
 list SourceIDs {
   member: SourceID

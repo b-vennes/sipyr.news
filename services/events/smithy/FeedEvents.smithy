@@ -3,9 +3,6 @@ namespace news.sipyr.events
 
 structure FeedCreated {
   @required
-  id: FeedID
-
-  @required
   maintainer: MaintainerID
 
   @required

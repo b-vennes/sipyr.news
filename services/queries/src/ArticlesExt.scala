@@ -22,9 +22,9 @@ object ArticlesExt {
   private given Decoder[SourceLocation] = Decoder.instance(cursor =>
     cursor.downField("rss").as[RSSLocation].map(SourceLocation.rss)
   )
-  private given Decoder[SourceID] = Decoder[Long].map(SourceID(_))
+  private given Decoder[SourceID] = Decoder[String].map(SourceID(_))
   private given Decoder[SourceInitialized] =
-    Decoder.forProduct2("id", "location")(SourceInitialized(_, _))
+    Decoder.forProduct1("location")(SourceInitialized(_))
   private given Decoder[ArticleDefinition] =
     Decoder.forProduct6("id", "name", "author", "outlet", "url", "date")(
       ArticleDefinition(_, _, _, _, _, _)
@@ -65,7 +65,7 @@ object ArticlesExt {
 
   def fold(
       aggregate: Chain[Article],
-      event: SourceEvent,
+      event: SourceEvent
   ): Chain[Article] =
     event match {
       case SourceEvent.InitializedCase(_) =>

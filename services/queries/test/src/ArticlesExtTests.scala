@@ -10,9 +10,8 @@ class ArticlesExtTests extends FunSuite {
       event(
         streamName = "wired.com/rss",
         eventTypeName = "initialized",
-        content =
-          """{
-            |  "id": 1,
+        content = """{
+            |  "id": "wired.com/rss",
             |  "location": {
             |    "rss": {
             |      "url": "https://wired.com/rss"
@@ -23,8 +22,7 @@ class ArticlesExtTests extends FunSuite {
       event(
         streamName = "wired.com/rss",
         eventTypeName = "articlesAdded",
-        content =
-          """{
+        content = """{
             |"articles": [
             |  {
             |    "id": 10,
@@ -51,16 +49,14 @@ class ArticlesExtTests extends FunSuite {
       event(
         streamName = "wired.com/rss",
         eventTypeName = "articlesAdded",
-        content =
-          """{
+        content = """{
             |  "articles": "bad-shape"
             |}""".stripMargin
       ),
       event(
         streamName = "nyt.com/rss",
         eventTypeName = "articlesAdded",
-        content =
-          """{
+        content = """{
             |  "articles": [
             |    {
             |      "id": 20,

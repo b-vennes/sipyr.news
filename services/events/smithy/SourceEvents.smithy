@@ -4,9 +4,6 @@ namespace news.sipyr.events
 
 structure SourceInitialized {
   @required
-  id: SourceID
-
-  @required
   location: SourceLocation
 }
 

@@ -11,23 +11,21 @@ class SourceIDsExtTests extends FunSuite {
       event(
         streamName = "daily-feed",
         eventTypeName = "created",
-        content =
-          """{
-            |  "id": 1,
+        content = """{
             |  "maintainer": 99,
             |  "name": "Daily Feed",
-            |  "sources": [1, 2]
+            |  "sources": ["source-a", "source-b"]
             |}""".stripMargin
       ),
       event(
         streamName = "daily-feed",
         eventTypeName = "sourcesAdded",
-        content = """{ "sources": [2, 3] }"""
+        content = """{ "sources": ["source-c"] }"""
       ),
       event(
         streamName = "daily-feed",
         eventTypeName = "sourcesRemoved",
-        content = """{ "sources": [1] }"""
+        content = """{ "sources": ["source-a"] }"""
       ),
       event(
         streamName = "daily-feed",
@@ -42,7 +40,7 @@ class SourceIDsExtTests extends FunSuite {
       event(
         streamName = "daily-feed",
         eventTypeName = "unknownEvent",
-        content = """{ "sources": [4] }"""
+        content = """{ "sources": ["source-z"] }"""
       )
     )
 
@@ -50,7 +48,7 @@ class SourceIDsExtTests extends FunSuite {
 
     assertEquals(
       hydrated,
-      SourceIDs(List(SourceID(2), SourceID(3)))
+      SourceIDs(List(SourceID("source-b"), SourceID("source-c")))
     )
   }
 
