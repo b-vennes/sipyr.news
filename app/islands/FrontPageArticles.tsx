@@ -19,7 +19,7 @@ export default function FrontPageArticles(props: Props) {
   const feeds = new APIFrontPage(props.baseUrl);
 
   const initialized = useSignal(now());
-  const page = useSignal(0);
+  const page = useSignal(1);
 
   const articles: Signal<Array<[number, Array<Article>]>> = useSignal(
     [],

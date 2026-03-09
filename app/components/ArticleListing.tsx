@@ -1,12 +1,20 @@
+import { EpochSeconds } from "@/app/domains/shared/EpochSeconds.ts";
+
 interface Props {
   name: string;
   author: string;
   outlet: string;
-  date: string;
+  date: EpochSeconds;
   url: string;
 }
 
 export default function ArticleListing(props: Props) {
+
+  const dateObj = new Date(props.date.secondsSinceEpoch);
+  const day = dateObj.getDate();
+  const month = dateObj.getMonth();
+  const year = dateObj.getFullYear();
+
   return (
     <a
       className="
@@ -24,7 +32,7 @@ export default function ArticleListing(props: Props) {
         <p className="font-sm">{props.author} - {props.outlet}</p>
       </div>
       <div className="flex flex-col">
-        <p className="font-mono">{props.date}</p>
+        <p className="font-mono">{day}/{month}/{year}</p>
       </div>
     </a>
   );

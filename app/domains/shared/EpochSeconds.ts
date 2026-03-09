@@ -1,3 +1,6 @@
+import { Option } from "effect";
+import { parseNumberField } from "@/app/domains/Parsing.ts";
+
 export interface EpochSeconds {
   secondsSinceEpoch: number;
 }
@@ -12,6 +15,16 @@ export function isEpochSeconds(value: unknown): value is EpochSeconds {
 export function now(): EpochSeconds {
   const current = new Date();
   return {
-    secondsSinceEpoch: current.getTime() / 1000,
+    secondsSinceEpoch: Math.ceil(current.getTime() / 1000),
   };
+}
+
+export function parseEpochSeconds(value: unknown): Option.Option<EpochSeconds> {
+  return Option.fromNullable(value as EpochSeconds).pipe(
+    Option.flatMap((nonNullValue) =>
+      Option.all({
+        secondsSinceEpoch: parseNumberField(nonNullValue, "secondsSinceEpoch")
+      })
+    )
+  )
 }

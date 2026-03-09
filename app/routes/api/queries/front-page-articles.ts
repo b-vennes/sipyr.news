@@ -1,12 +1,14 @@
 import { define } from "../../../utils.ts";
 import { EpochSeconds } from "@/app/domains/shared/EpochSeconds.ts";
 import { Article, parseArticle } from "@/app/domains/articles/Article.ts";
-import { Effect, Exit, Option } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
 import {
   parseListField,
   parseNumberField,
   parseStringField,
 } from "@/app/domains/Parsing.ts";
+
+const queriesAPI = "http://localhost:9000"
 
 export interface QueryRequest {
   feedName: string;
@@ -60,25 +62,6 @@ export function parseQueryResponse(
   );
 }
 
-const mockArticles: Array<Article> = [
-  {
-    id: 1,
-    name: "Premium: The Hater's Guide to Private Equity",
-    author: "Ed Zitron",
-    outlet: "Where's Your Ed At",
-    url: "https://www.wheresyoured.at/hatersguide-pe/",
-    date: "02-27-2026",
-  },
-  {
-    id: 2,
-    name: "On NVIDIA And Analyslop",
-    author: "Ed Zitron",
-    outlet: "Where's Your Ed At",
-    url: "https://www.wheresyoured.at/on-nvidia-and-analyslop/",
-    date: "02-26-2026",
-  },
-];
-
 export const handler = define.handlers({
   async POST(ctx) {
     const run = Effect
@@ -97,18 +80,46 @@ export const handler = define.handlers({
         ),
       )
       .pipe(
-        Effect.flatMap((request) =>
+        Effect.tap((request) =>
           Effect.log(`Received request '${JSON.stringify(request)}'.`)
         ),
       )
       .pipe(
-        Effect.map(() => {
-          const responseValue: QueryResponse = {
-            articles: mockArticles,
-          };
-
-          return responseValue;
-        }),
+        Effect.flatMap((request) =>
+          Effect
+            .tryPromise({
+              try: () => fetch(
+                queriesAPI + `/front-page/${request.feedName}`,
+                {
+                  method: "POST",
+                  body: JSON.stringify({
+                    page: request.page,
+                    pageSize: request.pageSize,
+                    initialized: {
+                      secondsSinceEpoch: request.initialized.secondsSinceEpoch
+                    }
+                  })
+                }
+              ),
+              catch: (unknownError) => `Failed to call the queries API: ${unknownError}`
+            })
+        ),
+      )
+      .pipe(
+        Effect.flatMap((response) =>
+          Effect.tryPromise({
+            try: () => response.json(),
+            catch: (unknownError) => `Failed to read response body from the call to the queries API: ${unknownError}`
+          })
+        ),
+      )
+      .pipe(
+        Effect.flatMap((responseBody) =>
+          Option.match(parseQueryResponse(responseBody), {
+            onNone: () => Effect.fail(`Failed to parse the response from the queries API: ${JSON.stringify(responseBody)}`),
+            onSome: (decoded) => Effect.succeed(decoded)
+          })
+        ),
       )
       .pipe(
         Effect.map((responseValue) => Response.json(responseValue)),
