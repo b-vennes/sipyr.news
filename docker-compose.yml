@@ -4,7 +4,8 @@ services:
     environment:
       POSTGRES_PASSWORD: pass
     volumes:
-      - ./database/initialize.sql:/docker-entrypoint-initdb.d/initialize.sql
-      - ./database/test-data.sql:/docker-entrypoint-initdb.d/test-data.sql
+      - ./database/1_initialize.sql:/docker-entrypoint-initdb.d/1_initialize.sql
+      - ./database/2_test-data.sql:/docker-entrypoint-initdb.d/2_test-data.sql
+      - ./database/3_example-games-news-feed.sql:/docker-entrypoint-initdb.d/3_example-games-news-feed.sql
     ports:
       - 5432:5432

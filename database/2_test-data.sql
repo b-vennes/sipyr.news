@@ -4,7 +4,7 @@ INSERT INTO event_streams (
   stream_name,
   stream_index,
   event_type_name,
-  content,
+  content
 )
 VALUES
 (

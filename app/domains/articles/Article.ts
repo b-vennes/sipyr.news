@@ -1,5 +1,6 @@
 import { Option } from "effect";
 import { parseNumberField, parseStringField } from "@/app/domains/Parsing.ts";
+import { EpochSeconds } from "@/app/domains/shared/EpochSeconds.ts";
 
 export interface Article {
   id: number;
@@ -7,7 +8,7 @@ export interface Article {
   author: string;
   outlet: string;
   url: string;
-  date: string;
+  date: EpochSeconds;
 }
 
 export function parseArticle(maybeArticle: unknown): Option.Option<Article> {
@@ -19,7 +20,7 @@ export function parseArticle(maybeArticle: unknown): Option.Option<Article> {
         author: parseStringField(nonNullMaybeArticle, "author"),
         outlet: parseStringField(nonNullMaybeArticle, "outlet"),
         url: parseStringField(nonNullMaybeArticle, "url"),
-        date: parseStringField(nonNullMaybeArticle, "date"),
+        date: parseNumberField(nonNullMaybeArticle, "date"),
       })
     ),
   );
