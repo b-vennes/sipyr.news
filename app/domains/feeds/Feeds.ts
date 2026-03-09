@@ -3,7 +3,6 @@ import { EpochSeconds } from "@/app/domains/shared/EpochSeconds.ts";
 import {
   parseQueryResponse,
   QueryRequest,
-  QueryResponse,
 } from "@/app/routes/api/queries/front-page-articles.ts";
 
 import { Effect, Option } from "effect";
@@ -51,15 +50,18 @@ export class APIFrontPage implements Feeds {
       pageSize,
     };
 
-    return Effect.promise(() =>
-      fetch(
+    return Effect.tryPromise({
+      try: () => fetch(
         this.baseUrl + "/api/queries/front-page-articles",
         {
           method: "POST",
           body: JSON.stringify(request),
         },
-      )
-    ).pipe(
+      ),
+      catch: (unknownError) => ({
+        reason: "Failed to retrieve front page articles: " + JSON.stringify(unknownError)
+      })
+    }).pipe(
       Effect.flatMap((response) => Effect.promise(() => response.json())),
     ).pipe(
       Effect.map((responseObj) => parseQueryResponse(responseObj)),
