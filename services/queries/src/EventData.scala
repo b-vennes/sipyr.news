@@ -1,6 +1,8 @@
 package news.sipyr.queries
 
 import io.circe.Json
+import cats.implicits._
+import cats.kernel.Eq
 
 final case class EventData(
     persistedAt: EventData.PersistedAt,
@@ -41,5 +43,31 @@ object EventData {
 
   object EventTypeName {
     @inline def fromString(value: String): EventTypeName = value
+
+    given Eq[EventTypeName] = Eq.by[EventTypeName, String](a => a)
+  }
+
+  extension (persistedAt: PersistedAt) {
+    @inline def toEpochSeconds: EpochSeconds = persistedAt
+  }
+
+  extension (typeName: TypeName) {
+    @inline def toTypeName: String = typeName
+  }
+
+  extension (streamName: StreamName) {
+    @inline def toStreamName: String = streamName
+  }
+
+  extension (index: Index) {
+    @inline def toIndex: Int = index
+  }
+
+  extension (eventTypeName: EventTypeName) {
+    @inline def toEventTypeName: String = eventTypeName
+  }
+
+  extension (content: Content) {
+    @inline def toJson: Json = content
   }
 }

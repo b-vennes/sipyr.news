@@ -37,6 +37,9 @@ structure ArticleDefinition {
   author: String
 
   @required
+  outlet: String
+
+  @required
   url: String
 
   @required
