@@ -1,5 +1,7 @@
 package news.sipyr.queries
 
+import news.sipyr.eventstore.{EventData, EventStream, EventStreams}
+
 import cats.data.Chain
 import cats.effect.IO
 import cats.effect.Resource
@@ -116,7 +118,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
 
     val expected: List[EventData] = List(
       EventData(
-        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L)),
+        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L).toEventsType),
         EventData.TypeName.fromString(categoryName),
         EventData.StreamName.fromString(streamName),
         EventData.Index.fromInt(0),
@@ -124,7 +126,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
         EventData.Content.fromJson(Json.obj())
       ),
       EventData(
-        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(2L)),
+        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(2L).toEventsType),
         EventData.TypeName.fromString(categoryName),
         EventData.StreamName.fromString(streamName),
         EventData.Index.fromInt(1),
@@ -141,7 +143,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
             EventStream.ID.fromString(streamName),
             EventStream.Category.fromString(categoryName)
           ),
-          EpochSeconds(2L)
+          EpochSeconds(2L).toEventsType
         )
     } yield assertEquals(
       result.toList,
@@ -193,7 +195,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
 
     val expected: List[EventData] = List(
       EventData(
-        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L)),
+        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L).toEventsType),
         EventData.TypeName.fromString(categoryName),
         EventData.StreamName.fromString(streamName1),
         EventData.Index.fromInt(0),
@@ -201,7 +203,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
         EventData.Content.fromJson(Json.obj())
       ),
       EventData(
-        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(2L)),
+        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(2L).toEventsType),
         EventData.TypeName.fromString(categoryName),
         EventData.StreamName.fromString(streamName1),
         EventData.Index.fromInt(1),
@@ -209,7 +211,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
         EventData.Content.fromJson(Json.obj())
       ),
       EventData(
-        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(3L)),
+        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(3L).toEventsType),
         EventData.TypeName.fromString(categoryName),
         EventData.StreamName.fromString(streamName2),
         EventData.Index.fromInt(0),
@@ -232,7 +234,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
               EventStream.Category.fromString(categoryName)
             )
           ),
-          EpochSeconds(3L)
+          EpochSeconds(3L).toEventsType
         )
     } yield assertEquals(
       result.toList,

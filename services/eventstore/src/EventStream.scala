@@ -1,4 +1,4 @@
-package news.sipyr.queries
+package news.sipyr.eventstore
 
 final case class EventStream(
     id: EventStream.ID,

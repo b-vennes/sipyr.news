@@ -1,6 +1,10 @@
 package news.sipyr.queries
 
-import news.sipyr.events.{SourceID, SourceIDs}
+import news.sipyr.events.{
+  EpochSeconds as EventsEpochSeconds,
+  SourceID,
+  SourceIDs
+}
 
 import cats.data.Chain
 
@@ -15,6 +19,11 @@ extension (epochSeconds: EpochSeconds) {
     EpochSeconds(
       epochSeconds.secondsSinceEpoch - secondsInDay
     )
+
+  @targetName("epochSecondsToEventsType")
+  def toEventsType: EventsEpochSeconds = EventsEpochSeconds(
+    epochSeconds.secondsSinceEpoch
+  )
 }
 
 extension (epochSeconds: EpochSeconds.type) {
@@ -22,11 +31,9 @@ extension (epochSeconds: EpochSeconds.type) {
     EpochSeconds(
       OffsetDateTime.parse(value).toEpochSecond()
     )
-}
 
-extension (sourceID: SourceID) {
-  def toEventStreamID: EventStream.ID =
-    EventStream.ID.fromString(sourceID.value.toString())
+  def fromEventsType(value: EventsEpochSeconds): EpochSeconds =
+    EpochSeconds(value.secondsSinceEpoch)
 }
 
 extension (articles: Articles) {

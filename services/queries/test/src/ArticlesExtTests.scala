@@ -1,5 +1,7 @@
 package news.sipyr.queries
 
+import news.sipyr.eventstore.EventData
+
 import cats.data.Chain
 import io.circe.parser.parse
 import munit.FunSuite
@@ -117,7 +119,8 @@ class ArticlesExtTests extends FunSuite {
       content: String
   ): EventData =
     EventData(
-      persistedAt = EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L)),
+      persistedAt =
+        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L).toEventsType),
       typeName = EventData.TypeName.fromString("sources"),
       streamName = EventData.StreamName.fromString(streamName),
       index = EventData.Index.fromInt(0),

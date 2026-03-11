@@ -1,6 +1,7 @@
 package news.sipyr.queries
 
 import news.sipyr.events.SourceID
+import news.sipyr.eventstore.{EventData, EventStream, EventStreams}
 
 import cats.effect.IO
 import cats.effect.Resource

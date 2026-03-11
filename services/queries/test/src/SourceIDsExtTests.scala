@@ -1,9 +1,11 @@
 package news.sipyr.queries
 
+import news.sipyr.eventstore.{EventData, EventStream, EventStreams}
+import news.sipyr.events.{SourceID, SourceIDs}
+
 import cats.data.Chain
 import io.circe.parser.parse
 import munit.FunSuite
-import news.sipyr.events.{SourceID, SourceIDs}
 
 class SourceIDsExtTests extends FunSuite {
   test("hydrate decodes feed events and folds source ids in order") {
@@ -58,7 +60,8 @@ class SourceIDsExtTests extends FunSuite {
       content: String
   ): EventData =
     EventData(
-      persistedAt = EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L)),
+      persistedAt =
+        EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L).toEventsType),
       typeName = EventData.TypeName.fromString("feeds"),
       streamName = EventData.StreamName.fromString(streamName),
       index = EventData.Index.fromInt(0),

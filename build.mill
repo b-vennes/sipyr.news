@@ -8,6 +8,8 @@ import smithy4s.codegen.mill._
 trait HasScala extends ScalaModule {
   def scalaVersion = "3.8.1"
 
+  val catsEffectVersion = "3.7.0"
+
   object test extends ScalaTests with TestModule.Munit {
     def ivyDeps = Agg(
       mvn"org.scalameta::munit::1.2.3",
@@ -23,10 +25,37 @@ object services extends Module {
     )
   }
 
-  object queries extends HasScala with Smithy4sModule {
+  object eventstore extends HasScala {
     def moduleDeps = Seq(events)
 
     def ivyDeps = Agg(
+      mvn"org.typelevel::cats-effect:$catsEffectVersion",
+      mvn"org.typelevel::cats-core:2.13.0",
+      mvn"org.tpolecat::skunk-core:0.6.5",
+      mvn"io.circe::circe-core:0.14.15",
+      mvn"io.circe::circe-parser:0.14.15",
+      mvn"org.typelevel::log4cats-slf4j:2.7.1",
+      mvn"org.slf4j:slf4j-simple:2.0.17"
+    )
+  }
+
+  object sourcing extends HasScala {
+    def moduleDeps = Seq(events, eventstore)
+
+    def ivyDeps = Agg(
+      mvn"org.typelevel::cats-effect:$catsEffectVersion",
+      mvn"org.typelevel::log4cats-slf4j:2.7.1",
+      mvn"org.slf4j:slf4j-simple:2.0.17",
+      mvn"io.circe::circe-core:0.14.15",
+      mvn"io.circe::circe-parser:0.14.15",
+    )
+  }
+
+  object queries extends HasScala with Smithy4sModule {
+    def moduleDeps = Seq(events, eventstore)
+
+    def ivyDeps = Agg(
+      mvn"org.typelevel::cats-effect:$catsEffectVersion",
       mvn"com.disneystreaming.smithy4s::smithy4s-core:${smithy4sVersion()}",
       mvn"com.disneystreaming.smithy4s::smithy4s-http4s-swagger:${smithy4sVersion()}",
       mvn"org.http4s::http4s-ember-server:0.23.33",

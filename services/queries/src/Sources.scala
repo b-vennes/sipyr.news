@@ -1,6 +1,7 @@
 package news.sipyr.queries
 
 import news.sipyr.events.SourceIDs
+import news.sipyr.eventstore.{EventStream, EventStreams, toEventStreamID}
 
 import cats.data.Chain
 import cats.effect.IO
@@ -35,7 +36,7 @@ object Sources {
                 EventStream.Categories.sources
               )
             ),
-          initialized
+          initialized.toEventsType
         )
         articles =
           ArticlesExt

@@ -1,4 +1,6 @@
-package news.sipyr.queries
+package news.sipyr.eventstore
+
+import news.sipyr.events.EpochSeconds
 
 import io.circe.Json
 import cats.implicits._

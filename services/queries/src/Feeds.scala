@@ -1,6 +1,7 @@
 package news.sipyr.queries
 
-import news.sipyr.events.SourceIDs
+import news.sipyr.events.{EpochSeconds as EventsEpochSeconds, SourceIDs}
+import news.sipyr.eventstore.{EventStream, EventStreams}
 
 import cats.effect.IO
 
@@ -18,7 +19,7 @@ object Feeds {
             EventStream.ID.fromString(feedName),
             EventStream.Categories.feeds
           ),
-          time
+          EventsEpochSeconds(time.secondsSinceEpoch)
         )
         sourceIDs = SourceIDsExt.hydrate(events)
       } yield sourceIDs

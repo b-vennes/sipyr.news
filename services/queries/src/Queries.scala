@@ -1,5 +1,7 @@
 package news.sipyr.queries
 
+import news.sipyr.eventstore.EventStreams
+
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.{port, host}
 import org.http4s.ember.server.EmberServerBuilder
