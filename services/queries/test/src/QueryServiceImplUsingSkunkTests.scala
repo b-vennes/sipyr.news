@@ -15,6 +15,7 @@ import skunk.codec.all._
 import skunk.implicits._
 import io.circe.Json
 
+import java.net.ConnectException
 import java.util.UUID
 
 class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
@@ -65,6 +66,30 @@ class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
     val sources = Sources.usingEventStreams(eventStreams)
     QueryServiceImpl(feeds, sources)
   }
+
+  def ensureDatabaseAvailable: IO[Unit] =
+    session
+      .use(
+        _.prepare(sql"select 1".query(int4)).flatMap(_.unique(Void)).void
+      )
+      .handleErrorWith {
+        case error if isConnectionRefused(error) =>
+          IO.println(
+            "Connection refused while running database integration tests. Start the root docker compose environment before running tests."
+          ) *> IO.raiseError(error)
+        case error =>
+          IO.raiseError(error)
+      }
+
+  def isConnectionRefused(error: Throwable): Boolean =
+    Iterator
+      .iterate(Option(error))(_.flatMap(err => Option(err.getCause)))
+      .takeWhile(_.nonEmpty)
+      .flatten
+      .exists(err =>
+        err.isInstanceOf[ConnectException] ||
+          Option(err.getMessage).exists(_.contains("Connection refused"))
+      )
 
   def insertRows(rows: List[EventStreams.EventRow]): IO[Unit] =
     session.use { s =>
@@ -127,6 +152,7 @@ class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
     )
 
     for {
+      _ <- ensureDatabaseAvailable
       _ <- insertRows(rows)
       firstPage <- queryService.frontPage(
         feedName = feedName,
@@ -190,6 +216,7 @@ class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
     )
 
     for {
+      _ <- ensureDatabaseAvailable
       _ <- insertRows(rows)
       result <- queryService.frontPage(
         feedName = feedName,

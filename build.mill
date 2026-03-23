@@ -44,6 +44,8 @@ object services extends Module {
 
     def ivyDeps = Agg(
       mvn"org.typelevel::cats-effect:$catsEffectVersion",
+      mvn"org.gnieh::fs2-data-xml-scala:1.12.0",
+      mvn"org.http4s::http4s-ember-client:0.23.33",
       mvn"org.typelevel::log4cats-slf4j:2.7.1",
       mvn"org.slf4j:slf4j-simple:2.0.17",
       mvn"io.circe::circe-core:0.14.15",

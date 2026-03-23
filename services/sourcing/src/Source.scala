@@ -5,6 +5,7 @@ import news.sipyr.events.{RSSLocation, SourceEvent, SourceLocation}
 import news.sipyr.eventstore.EventData
 import cats.implicits._
 import news.sipyr.sourcing.Source.Location.RSS
+import news.sipyr.eventstore.SourceEventExt
 
 final case class Source(
     location: Source.Location,
@@ -12,17 +13,16 @@ final case class Source(
 )
 
 object Source {
-  opaque type ID = String
-
-  object ID {
-    def fromString(value: String): ID = value
-  }
-
   enum Location {
     case RSS(url: String)
   }
 
-  def hydrate(from: Chain[EventData]): Option[Source] = ???
+  def hydrate(from: Chain[EventData]): Option[Source] =
+    from
+      .map(SourceEventExt.decode)
+      .foldLeft(none[Source])((aggregate, maybeEvent) =>
+        maybeEvent.fold(aggregate)(fold(aggregate, _))
+      )
 
   def fold(maybeSource: Option[Source], event: SourceEvent): Option[Source] =
     event match {

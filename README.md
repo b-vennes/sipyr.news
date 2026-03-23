@@ -88,6 +88,19 @@ database and aggregates the event content into views for the frontend.
 A view for a frontend or client is "hydrated" using a set of events, possibly
 from many streams and stream types (aka categories).
 
+## Sourcing Service
+
+The sourcing service is responsible for retrieving article data for all sources
+defined in the database.
+
+The sourcing service repeatedly iterates over all the defined sources, fetches
+their XML Atom or RSS feeds, and adds any articles that haven't yet been
+defined. Articles are unique by their URL location.
+
+The sourcing service uses
+[FS2 data](https://fs2-data.gnieh.org/documentation/xml/) to decode the source
+XML files.
+
 ## Database
 
 The database contains a single table "event_streams" with the following schema:

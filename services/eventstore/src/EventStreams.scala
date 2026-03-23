@@ -20,6 +20,19 @@ trait EventStreams[F[_]] {
       eventStreams: Chain[EventStream],
       time: EpochSeconds
   ): F[Chain[EventData]]
+
+  def streamNames(
+      category: EventStream.Category,
+      time: EpochSeconds
+  ): F[Chain[EventStream.ID]]
+
+  def append(
+      eventStream: EventStream,
+      persistedAt: EpochSeconds,
+      index: Int,
+      eventTypeName: EventData.EventTypeName,
+      content: EventData.Content
+  ): F[Unit]
 }
 
 object EventStreams {
@@ -56,6 +69,37 @@ object EventStreams {
             content
           )
       }
+
+  val readStreamNames: Query[(Long, String), String] =
+    sql"""
+      SELECT DISTINCT stream_name
+      FROM event_streams
+      WHERE
+            persisted_at <= $int8
+        AND type_name = ${varchar(64)}
+      ORDER BY stream_name ASC
+    """.query(varchar(128))
+
+  val insertEvent: Command[(Long, String, String, Int, String, String)] =
+    sql"""
+      INSERT INTO event_streams
+      (
+        persisted_at,
+        type_name,
+        stream_name,
+        stream_index,
+        event_type_name,
+        content
+      )
+      VALUES (
+        $int8,
+        ${varchar(64)},
+        ${varchar(128)},
+        $int4,
+        ${varchar(64)},
+        ${text}::json
+      )
+    """.command
 
   private class UsingSkunk(session: Resource[IO, Session[IO]])
       extends EventStreams[IO] {
@@ -97,6 +141,63 @@ object EventStreams {
         .onError { error =>
           logger.error(error)(
             s"Failed to read events for streamCount=${eventStreams.toList.size} time=${time.secondsSinceEpoch}"
+          )
+        }
+
+    override def streamNames(
+        category: EventStream.Category,
+        time: EpochSeconds
+    ): IO[Chain[EventStream.ID]] =
+      session
+        .use { session =>
+          session
+            .prepare(readStreamNames)
+            .flatMap(
+              _.stream(
+                (time.secondsSinceEpoch, category.typeName),
+                128
+              ).compile.toList
+            )
+        }
+        .map(streamNames =>
+          Chain.fromSeq(
+            streamNames.map(EventStream.ID.fromString)
+          )
+        )
+        .onError { error =>
+          logger.error(error)(
+            s"Failed to read stream names for category=${category.typeName} time=${time.secondsSinceEpoch}"
+          )
+        }
+
+    override def append(
+        eventStream: EventStream,
+        persistedAt: EpochSeconds,
+        index: Int,
+        eventTypeName: EventData.EventTypeName,
+        content: EventData.Content
+    ): IO[Unit] =
+      session
+        .use { session =>
+          session
+            .prepare(insertEvent)
+            .flatMap(
+              _.execute(
+                (
+                  persistedAt.secondsSinceEpoch,
+                  eventStream.category.typeName,
+                  eventStream.id.streamName,
+                  index,
+                  eventTypeName.toEventTypeName,
+                  content.toJson.noSpaces
+                )
+              )
+            )
+            .void
+        }
+        .onError { error =>
+          logger.error(error)(
+            s"Failed to append event type=${eventTypeName.toEventTypeName} stream=${eventStream.id.streamName} category=${eventStream.category.typeName} index=$index"
           )
         }
   }
