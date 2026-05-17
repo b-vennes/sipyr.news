@@ -14,4 +14,12 @@ VALUES
   0,
   'initialized',
   '{"id":1,"location":{"rss":{"url":"https://www.wheresyoured.at/rss"}}}'
+),
+(
+  1772841600,
+  'sources',
+  'remapradio.com/rss',
+  0,
+  'initialized',
+  '{"id":2,"location":{"rss":{"url":"https://remapradio.com/rss/"}}}'
 );

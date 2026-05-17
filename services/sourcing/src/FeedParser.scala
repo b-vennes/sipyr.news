@@ -21,6 +21,7 @@ import org.http4s.Method
 import org.http4s.Request
 import org.http4s.Uri
 import org.http4s.client.Client
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.xml.Document
 import scala.xml.Elem
@@ -32,10 +33,16 @@ trait FeedClient[F[_]] {
 
 object FeedClient {
   private class Live(client: Client[IO]) extends FeedClient[IO] {
+    val logger = Slf4jLogger.getLogger[IO]
+
     override def articles(source: Source): IO[Chain[ArticleDefinition]] =
       source.location match {
         case Source.Location.RSS(url) =>
-          fetch(url).flatMap(parse(url, _))
+          fetch(url)
+            .flatTap(content =>
+              logger.info(s"Found article source with content:${System.lineSeparator()}$content")
+            )
+            .flatMap(parse(url, _))
       }
 
     def fetch(url: String): IO[String] =

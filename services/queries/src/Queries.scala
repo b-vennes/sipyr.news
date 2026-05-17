@@ -3,12 +3,16 @@ package news.sipyr.queries
 import news.sipyr.eventstore.EventStreams
 
 import cats.effect.{IO, IOApp}
-import com.comcast.ip4s.{port, host}
+import com.comcast.ip4s.{Host, Port, host, port}
 import org.http4s.ember.server.EmberServerBuilder
 import skunk.Session
 import natchez.Trace.Implicits.noop
 
 object Main extends IOApp.Simple {
+  private val serviceHost: String =
+    sys.env.getOrElse("QUERIES_HOST", "0.0.0.0")
+  private val servicePort: Int =
+    sys.env.get("QUERIES_PORT").flatMap(_.toIntOption).getOrElse(9000)
   private val databaseHost: String =
     sys.env.getOrElse("POSTGRES_HOST", "localhost")
   private val databasePort: Int =
@@ -37,8 +41,8 @@ object Main extends IOApp.Simple {
       .flatMap { routes =>
         EmberServerBuilder
           .default[IO]
-          .withPort(port"9000")
-          .withHost(host"localhost")
+          .withPort(Port.fromInt(servicePort).getOrElse(port"9000"))
+          .withHost(Host.fromString(serviceHost).getOrElse(host"0.0.0.0"))
           .withHttpApp(routes.orNotFound)
           .build
       }

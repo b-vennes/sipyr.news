@@ -7,6 +7,7 @@ import cats.data.Chain
 import cats.effect.IO
 import cats.kernel.Comparison
 import cats.implicits._
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 trait Sources[F[_]] {
   def articles(
@@ -20,6 +21,8 @@ trait Sources[F[_]] {
 object Sources {
   private class UsingEventStreams(eventStreams: EventStreams[IO])
       extends Sources[IO] {
+    val logger = Slf4jLogger.getLogger[IO]
+
     override def articles(
         sources: SourceIDs,
         initialized: EpochSeconds,
@@ -38,10 +41,13 @@ object Sources {
             ),
           initialized.toEventsType
         )
-        articles =
-          ArticlesExt
+        _ <- logger.info(s"Found ${events.length} events for sources $sources.")
+        articles = ArticlesExt
             .hydrate(events)
             .toChain
+        _ <- logger.info(s"Found ${articles.length} articles for sources $sources.")
+        filtered =
+          articles
             .filter(article =>
               (
                 article.date.comparison(from),
@@ -56,7 +62,7 @@ object Sources {
               }
             )
             .toArticles
-      } yield articles
+      } yield filtered
   }
 
   def usingEventStreams(eventStreams: EventStreams[IO]): Sources[IO] =

@@ -1,0 +1,9 @@
+.git
+.bloop
+.bsp
+.metals
+.nova
+out
+node_modules
+app/_fresh
+**/.DS_Store

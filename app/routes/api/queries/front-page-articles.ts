@@ -8,7 +8,7 @@ import {
   parseStringField,
 } from "@/app/domains/Parsing.ts";
 
-const queriesAPI = "http://localhost:9000"
+const queriesAPI = Deno.env.get("QUERIES_API") ?? "http://localhost:9000";
 
 export interface QueryRequest {
   feedName: string;

@@ -13,7 +13,7 @@ VALUES
   'aftermath.site',
   0,
   'initialized',
-  '{"location":{"rss":{"url":"https://aftermath.site/"}}}'
+  '{"location":{"rss":{"url":"https://aftermath.site/rss/"}}}'
 ),
 (
   1772841600,

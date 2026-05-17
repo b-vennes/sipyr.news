@@ -1,0 +1,20 @@
+services:
+  database:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - ./database/1_initialize.sql:/docker-entrypoint-initdb.d/1_initialize.sql:ro
+      - ./database/2_test-data.sql:/docker-entrypoint-initdb.d/2_test-data.sql:ro
+      - ./database/3_example-games-news-feed.sql:/docker-entrypoint-initdb.d/3_example-games-news-feed.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

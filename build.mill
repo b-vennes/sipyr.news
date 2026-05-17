@@ -6,7 +6,7 @@ import mill._, scalalib._
 import smithy4s.codegen.mill._
 
 trait HasScala extends ScalaModule {
-  def scalaVersion = "3.8.1"
+  def scalaVersion = "3.8.3"
 
   val catsEffectVersion = "3.7.0"
 
