@@ -15,6 +15,7 @@
                         git
                         github-cli
                         mill
+                        deno
                     ];
                 };
             }
