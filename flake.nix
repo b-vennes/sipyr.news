@@ -14,7 +14,7 @@
                         neovim
                         git
                         github-cli
-                        mill
+                        jdk25_headless
                         deno
                     ];
                 };
