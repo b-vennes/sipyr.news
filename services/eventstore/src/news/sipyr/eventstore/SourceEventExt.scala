@@ -4,11 +4,6 @@ import cats.implicits.*
 import news.sipyr.events.{ArticlesAdded, SourceEvent, SourceInitialized}
 
 object SourceEventExt {
-  val initializedEventType: EventData.EventTypeName =
-    EventData.EventTypeName.fromString("initialized")
-  val articlesAddedEventType: EventData.EventTypeName =
-    EventData.EventTypeName.fromString("articlesAdded")
-
   def decode(eventData: EventData): Option[SourceEvent] =
     eventData.eventTypeName match {
       case t if t === initializedEventType =>
@@ -23,4 +18,11 @@ object SourceEventExt {
           .map(SourceEvent.articlesAdded)
       case _ => None
     }
+
+  val initializedEventType: EventData.EventTypeName =
+    EventData.EventTypeName.fromString("initialized")
+
+  val articlesAddedEventType: EventData.EventTypeName =
+    EventData.EventTypeName.fromString("articlesAdded")
+
 }

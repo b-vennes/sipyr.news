@@ -42,9 +42,11 @@ object Sources {
         )
         _ <- logger.info(s"Found ${events.length} events for sources $sources.")
         articles = ArticlesExt
-            .hydrate(events)
-            .toChain
-        _ <- logger.info(s"Found ${articles.length} articles for sources $sources.")
+          .hydrate(events)
+          .toChain
+        _ <- logger.info(
+          s"Found ${articles.length} articles for sources $sources."
+        )
         filtered =
           articles
             .filter(article =>

@@ -10,15 +10,20 @@ trait HasScala extends ScalaModule {
 
   val catsEffectVersion = "3.7.0"
 
+  def additionalTestModuleDeps: Seq[JavaModule] = Seq()
+
   object test extends ScalaTests with TestModule.Munit {
     def ivyDeps = Agg(
       mvn"org.scalameta::munit::1.2.3",
       mvn"org.typelevel::munit-cats-effect::2.1.0"
     )
+
+    def moduleDeps: Seq[JavaModule] = super.moduleDeps ++ additionalTestModuleDeps
   }
 }
 
 object services extends Module {
+
   object events extends HasScala with Smithy4sModule {
     def ivyDeps = Agg(
       mvn"com.disneystreaming.smithy4s::smithy4s-core:${smithy4sVersion()}",
@@ -39,6 +44,14 @@ object services extends Module {
     )
   }
 
+  object testutils extends HasScala {
+    def ivyDeps = Agg(
+      mvn"org.tpolecat::skunk-core:0.6.5"
+    )
+
+    def moduleDeps = Seq(eventstore)
+  }
+
   object sourcing extends HasScala {
     def moduleDeps = Seq(events, eventstore)
 
@@ -51,6 +64,8 @@ object services extends Module {
       mvn"io.circe::circe-core:0.14.15",
       mvn"io.circe::circe-parser:0.14.15",
     )
+
+    def additionalTestModuleDeps = Seq(testutils)
   }
 
   object queries extends HasScala with Smithy4sModule {
@@ -67,5 +82,7 @@ object services extends Module {
       mvn"org.typelevel::log4cats-slf4j:2.7.1",
       mvn"org.slf4j:slf4j-simple:2.0.17"
     )
+
+    def additionalTestModuleDeps = Seq(testutils)
   }
 }

@@ -5,11 +5,6 @@ import news.sipyr.events.{ArticleDefinition, SourceEvent}
 import news.sipyr.eventstore.{EventData, SourceEventExt}
 
 object ArticlesExt {
-
-  def fromChain(articlesChain: Chain[Article]): Articles = Articles(
-    articlesChain.toList
-  )
-
   def hydrate(events: Chain[EventData]): Articles =
     fromChain(events.foldLeft(Chain.empty[Article]) { (aggregate, eventData) =>
       SourceEventExt.decode(eventData).fold(aggregate) { event =>
@@ -30,7 +25,7 @@ object ArticlesExt {
         )
     }
 
-  def toArticle(definition: ArticleDefinition): Article =
+  private def toArticle(definition: ArticleDefinition): Article =
     Article(
       id = definition.id,
       name = definition.name,
@@ -39,4 +34,8 @@ object ArticlesExt {
       url = definition.url,
       date = EpochSeconds(definition.date.secondsSinceEpoch)
     )
+
+  private def fromChain(articlesChain: Chain[Article]): Articles = Articles(
+    articlesChain.toList
+  )
 }

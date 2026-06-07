@@ -4,6 +4,7 @@ import cats.data.Chain
 import cats.effect.IO
 import cats.implicits.*
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import SourceIDsExt.given
 
 class QueryServiceImpl(
     feeds: Feeds[IO],
@@ -19,14 +20,15 @@ class QueryServiceImpl(
   ): IO[FrontPageResponse] =
     for {
       feedSources <- feeds.sources(feedName, initialized)
-      _ <- logger.info(s"Found sources: ${feedSources}")
+      _ <- logger.info(show"Found sources: $feedSources")
       articles <- sources.articles(
         feedSources,
         initialized,
         initialized.dayBefore,
         initialized
       )
-      _ <- logger.info(s"Found articles: ${articles}")
+      articleUrls = articles.value.map(_.url)
+      _ <- logger.info(show"Found articles: $articleUrls")
       pageRange = Range((page - 1) * pageSize, page * pageSize)
       paged = Chain
         .fromSeq(articles.value)

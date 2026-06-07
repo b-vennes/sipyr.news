@@ -1,5 +1,6 @@
 package news.sipyr.queries
 
+import cats.Show
 import cats.data.Chain
 import io.circe.Decoder
 import news.sipyr.events.*
@@ -11,6 +12,8 @@ import news.sipyr.eventstore.{
 }
 
 object SourceIDsExt {
+
+  given Show[SourceIDs] = Show.fromToString
 
   def hydrate(events: Chain[EventData]): SourceIDs =
     events.foldLeft(SourceIDs(List.empty)) { (aggregate, eventData) =>

@@ -6,24 +6,27 @@ import munit.FunSuite
 import news.sipyr.eventstore.EventData
 
 class ArticlesExtTests extends FunSuite {
-  test("hydrate decodes source events and folds articles in order") {
+  test("hydrate decodes source events and folds in order") {
     val events = Chain(
       event(
         streamName = "wired.com/rss",
         eventTypeName = "initialized",
-        content = """{
+        content = """
+            |{
             |  "id": "wired.com/rss",
             |  "location": {
             |    "rss": {
             |      "url": "https://wired.com/rss"
             |    }
             |  }
-            |}""".stripMargin
+            |}
+            |""".stripMargin
       ),
       event(
         streamName = "wired.com/rss",
         eventTypeName = "articlesAdded",
-        content = """{
+        content = """
+            |{
             |"articles": [
             |  {
             |    "id": 10,
@@ -45,19 +48,23 @@ class ArticlesExtTests extends FunSuite {
             |      "secondsSinceEpoch": 101
             |    }
             |  }
-            |]}""".stripMargin
+            |]}
+            |""".stripMargin
       ),
       event(
         streamName = "wired.com/rss",
         eventTypeName = "articlesAdded",
-        content = """{
+        content = """
+            |{
             |  "articles": "bad-shape"
-            |}""".stripMargin
+            |}
+            |""".stripMargin
       ),
       event(
         streamName = "nyt.com/rss",
         eventTypeName = "articlesAdded",
-        content = """{
+        content = """
+            |{
             |  "articles": [
             |    {
             |      "id": 20,
@@ -70,7 +77,8 @@ class ArticlesExtTests extends FunSuite {
             |      }
             |    }
             |  ]
-            |}""".stripMargin
+            |}
+            |""".stripMargin
       ),
       event(
         streamName = "wired.com/rss",
@@ -112,7 +120,7 @@ class ArticlesExtTests extends FunSuite {
     )
   }
 
-  def event(
+  private def event(
       streamName: String,
       eventTypeName: String,
       content: String

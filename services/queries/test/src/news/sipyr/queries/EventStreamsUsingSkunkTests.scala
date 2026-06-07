@@ -1,6 +1,7 @@
 package news.sipyr.queries
 
 import cats.data.Chain
+import cats.effect.std.Env
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import io.circe.Json
@@ -10,107 +11,23 @@ import news.sipyr.eventstore.{EventData, EventStream, EventStreams}
 import skunk.{Command, Session, Void}
 import skunk.codec.all.*
 import skunk.implicits.*
+import news.sipyr.testutils.Database
 
 import java.net.ConnectException
-import java.time.OffsetDateTime
 import java.util.UUID
 
 class EventStreamsUsingSkunkTests extends CatsEffectSuite {
-  val databaseHost: String =
-    sys.env.getOrElse("TEST_POSTGRES_HOST", "localhost")
-  val databasePort: Int =
-    sys.env.get("TEST_POSTGRES_PORT").flatMap(_.toIntOption).getOrElse(5432)
-  val databaseUser: String =
-    sys.env.getOrElse("TEST_POSTGRES_USER", "postgres")
-  val databaseName: String =
-    sys.env.getOrElse("TEST_POSTGRES_DATABASE", "postgres")
-  val databasePassword: String =
-    sys.env.getOrElse("TEST_POSTGRES_PASSWORD", "pass")
-
-  val session: Resource[IO, Session[IO]] =
-    Session.single[IO](
-      host = databaseHost,
-      port = databasePort,
-      user = databaseUser,
-      database = databaseName,
-      password = Some(databasePassword)
-    )
-
-  val underTest: EventStreams[IO] = EventStreams.usingSkunk(session)
-
-  def ensureDatabaseAvailable: IO[Unit] =
-    session
-      .use(
-        _.prepare(sql"select 1".query(int4)).flatMap(_.unique(Void)).void
-      )
-      .handleErrorWith {
-        case error if isConnectionRefused(error) =>
-          IO.println(
-            "Connection refused while running database integration tests. Start the root docker compose environment before running tests."
-          ) *> IO.raiseError(error)
-        case error =>
-          IO.raiseError(error)
-      }
-
-  def isConnectionRefused(error: Throwable): Boolean =
-    Iterator
-      .iterate(Option(error))(_.flatMap(err => Option(err.getCause)))
-      .takeWhile(_.nonEmpty)
-      .flatten
-      .exists(err =>
-        err.isInstanceOf[ConnectException] ||
-          Option(err.getMessage).exists(_.contains("Connection refused"))
-      )
-
-  val insertEvent: Command[(Long, String, String, Int, String, String)] =
-    sql"""
-      INSERT INTO event_streams
-      (
-        persisted_at,
-        type_name,
-        stream_name,
-        stream_index,
-        event_type_name,
-        content
-      )
-      VALUES (
-        $int8,
-        ${varchar(64)},
-        ${varchar(128)},
-        $int4,
-        ${varchar(64)},
-        ${text}::json
-      )
-    """.command
-
-  def insertRows(rows: List[EventStreams.EventRow]): IO[Unit] =
-    session.use { s =>
-      s.prepare(insertEvent)
-        .flatMap(command =>
-          rows.traverse_(row =>
-            command
-              .execute(
-                (
-                  row.persistedAt,
-                  row.typeName,
-                  row.streamName,
-                  row.index,
-                  row.eventTypeName,
-                  row.content
-                )
-              )
-              .void
-          )
-        )
-    }
+  val underTest: EventStreams[IO] = EventStreams.usingSkunk(Database.session)
 
   test(
     "read returns stream events in ascending time order up to the provided time"
   ) {
-    val categoryName = UUID.randomUUID().toString()
-    val streamName = UUID.randomUUID().toString()
+    val categoryName = UUID.randomUUID().show
+    val streamName = UUID.randomUUID().show
 
-    val streamState: List[EventStreams.EventRow] = List(
+    val requestTime = 2L
+
+    val streamState = Chain(
       EventStreams.EventRow(
         1L,
         categoryName,
@@ -137,7 +54,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
       )
     )
 
-    val expected: List[EventData] = List(
+    val expected: Chain[EventData] = Chain(
       EventData(
         EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L).toEventsType),
         EventData.TypeName.fromString(categoryName),
@@ -157,30 +74,27 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
     )
 
     for {
-      _ <- ensureDatabaseAvailable
-      _ <- insertRows(streamState)
+      _ <- Database.ensureAvailable
+      _ <- Database.insertEventRows(streamState)
       result <- underTest
         .read(
           EventStream(
             EventStream.ID.fromString(streamName),
             EventStream.Category.fromString(categoryName)
           ),
-          EpochSeconds(2L).toEventsType
+          EpochSeconds(requestTime).toEventsType
         )
-    } yield assertEquals(
-      result.toList,
-      expected
-    )
+    } yield assertEquals(result, expected)
   }
 
   test(
     "readMany returns stream events from all streams in ascending time order up to the provided time"
   ) {
-    val categoryName = UUID.randomUUID().toString()
-    val streamName1 = UUID.randomUUID().toString()
-    val streamName2 = UUID.randomUUID().toString()
+    val categoryName = UUID.randomUUID().show
+    val streamName1 = UUID.randomUUID().show
+    val streamName2 = UUID.randomUUID().show
 
-    val streamState: List[EventStreams.EventRow] = List(
+    val streamState: Chain[EventStreams.EventRow] = Chain(
       EventStreams.EventRow(
         1L,
         categoryName,
@@ -215,7 +129,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
       )
     )
 
-    val expected: List[EventData] = List(
+    val expected: Chain[EventData] = Chain(
       EventData(
         EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L).toEventsType),
         EventData.TypeName.fromString(categoryName),
@@ -243,8 +157,8 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
     )
 
     for {
-      _ <- ensureDatabaseAvailable
-      _ <- insertRows(streamState)
+      _ <- Database.ensureAvailable
+      _ <- Database.insertEventRows(streamState)
       result <- underTest
         .readMany(
           Chain(
@@ -259,20 +173,17 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
           ),
           EpochSeconds(3L).toEventsType
         )
-    } yield assertEquals(
-      result.toList,
-      expected
-    )
+    } yield assertEquals(result, expected)
   }
 
   test(
     "read returns only events for the requested stream when multiple stream names exist in the same category"
   ) {
-    val categoryName = UUID.randomUUID().toString()
-    val requestedStreamName = UUID.randomUUID().toString()
-    val otherStreamName = UUID.randomUUID().toString()
+    val categoryName = UUID.randomUUID().show
+    val requestedStreamName = UUID.randomUUID().show
+    val otherStreamName = UUID.randomUUID().show
 
-    val streamState: List[EventStreams.EventRow] = List(
+    val streamState: Chain[EventStreams.EventRow] = Chain(
       EventStreams.EventRow(
         1L,
         categoryName,
@@ -307,7 +218,7 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
       )
     )
 
-    val expected: List[EventData] = List(
+    val expected: Chain[EventData] = Chain(
       EventData(
         EventData.PersistedAt.fromEpochSeconds(EpochSeconds(1L).toEventsType),
         EventData.TypeName.fromString(categoryName),
@@ -327,8 +238,8 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
     )
 
     for {
-      _ <- ensureDatabaseAvailable
-      _ <- insertRows(streamState)
+      _ <- Database.ensureAvailable
+      _ <- Database.insertEventRows(streamState)
       result <- underTest.read(
         EventStream(
           EventStream.ID.fromString(requestedStreamName),
@@ -336,6 +247,6 @@ class EventStreamsUsingSkunkTests extends CatsEffectSuite {
         ),
         EpochSeconds(4L).toEventsType
       )
-    } yield assertEquals(result.toList, expected)
+    } yield assertEquals(result, expected)
   }
 }

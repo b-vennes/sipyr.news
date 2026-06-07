@@ -30,9 +30,6 @@ object FeedClient {
       source.location match {
         case Source.Location.RSS(url) =>
           fetch(url)
-            .flatTap(content =>
-              logger.info(s"Found article source with content:${System.lineSeparator()}$content")
-            )
             .flatMap(parse(url, _))
       }
 

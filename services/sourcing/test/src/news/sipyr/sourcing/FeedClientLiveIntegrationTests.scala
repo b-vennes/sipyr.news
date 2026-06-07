@@ -14,9 +14,17 @@ class FeedClientLiveIntegrationTests extends CatsEffectSuite {
         val underTest = FeedClient.live(client)
 
         underTest
-          .articles(Source(Source.Location.RSS("https://remapradio.com/rss/"), cats.data.Chain.empty))
+          .articles(
+            Source(
+              Source.Location.RSS("https://remapradio.com/rss/"),
+              cats.data.Chain.empty
+            )
+          )
           .map { articles =>
-            assert(articles.nonEmpty, "expected the live RSS feed to contain at least one article")
+            assert(
+              articles.nonEmpty,
+              "expected the live RSS feed to contain at least one article"
+            )
             assert(
               articles.forall(article =>
                 article.name.nonEmpty &&

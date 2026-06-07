@@ -1,122 +1,32 @@
 package news.sipyr.queries
 
-import cats.effect.{IO, Resource}
+import cats.data.Chain
 import cats.implicits.*
 import io.circe.Json
 import munit.CatsEffectSuite
-import natchez.Trace.Implicits.noop
 import news.sipyr.events.SourceID
 import news.sipyr.eventstore.{EventData, EventStream, EventStreams}
-import skunk.{Command, Session, Void}
-import skunk.codec.all.*
-import skunk.implicits.*
+import news.sipyr.testutils.Database
 
-import java.net.ConnectException
 import java.util.UUID
 
 class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
-  val databaseHost: String =
-    sys.env.getOrElse("TEST_POSTGRES_HOST", "localhost")
-  val databasePort: Int =
-    sys.env.get("TEST_POSTGRES_PORT").flatMap(_.toIntOption).getOrElse(5432)
-  val databaseUser: String =
-    sys.env.getOrElse("TEST_POSTGRES_USER", "postgres")
-  val databaseName: String =
-    sys.env.getOrElse("TEST_POSTGRES_DATABASE", "postgres")
-  val databasePassword: String =
-    sys.env.getOrElse("TEST_POSTGRES_PASSWORD", "pass")
-
-  val session: Resource[IO, Session[IO]] =
-    Session.single[IO](
-      host = databaseHost,
-      port = databasePort,
-      user = databaseUser,
-      database = databaseName,
-      password = Some(databasePassword)
-    )
-
-  val insertEvent: Command[(Long, String, String, Int, String, String)] =
-    sql"""
-      INSERT INTO event_streams
-      (
-        persisted_at,
-        type_name,
-        stream_name,
-        stream_index,
-        event_type_name,
-        content
-      )
-      VALUES (
-        $int8,
-        ${varchar(64)},
-        ${varchar(128)},
-        $int4,
-        ${varchar(64)},
-        ${text}::json
-      )
-    """.command
-
   val queryService: QueryServiceImpl = {
-    val eventStreams = EventStreams.usingSkunk(session)
+    val eventStreams = EventStreams.usingSkunk(Database.session)
     val feeds = Feeds.usingEventStreams(eventStreams)
     val sources = Sources.usingEventStreams(eventStreams)
     QueryServiceImpl(feeds, sources)
   }
 
-  def ensureDatabaseAvailable: IO[Unit] =
-    session
-      .use(
-        _.prepare(sql"select 1".query(int4)).flatMap(_.unique(Void)).void
-      )
-      .handleErrorWith {
-        case error if isConnectionRefused(error) =>
-          IO.println(
-            "Connection refused while running database integration tests. Start the root docker compose environment before running tests."
-          ) *> IO.raiseError(error)
-        case error =>
-          IO.raiseError(error)
-      }
-
-  def isConnectionRefused(error: Throwable): Boolean =
-    Iterator
-      .iterate(Option(error))(_.flatMap(err => Option(err.getCause)))
-      .takeWhile(_.nonEmpty)
-      .flatten
-      .exists(err =>
-        err.isInstanceOf[ConnectException] ||
-          Option(err.getMessage).exists(_.contains("Connection refused"))
-      )
-
-  def insertRows(rows: List[EventStreams.EventRow]): IO[Unit] =
-    session.use { s =>
-      s.prepare(insertEvent)
-        .flatMap(command =>
-          rows.traverse_(row =>
-            command
-              .execute(
-                (
-                  row.persistedAt,
-                  row.typeName,
-                  row.streamName,
-                  row.index,
-                  row.eventTypeName,
-                  row.content
-                )
-              )
-              .void
-          )
-        )
-    }
-
   test(
     "frontPage returns paged articles from feed sources filtered by date range"
   ) {
     val initialized = EpochSeconds(200000L)
-    val feedName = s"feed-${UUID.randomUUID().toString}"
+    val feedName = show"feed-${UUID.randomUUID()}"
     val sourceID1 = randomSourceID()
     val sourceID2 = randomSourceID()
 
-    val rows = List(
+    val rows = Chain(
       feedCreated(
         persistedAt = 100L,
         feedName = feedName,
@@ -148,8 +58,8 @@ class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
     )
 
     for {
-      _ <- ensureDatabaseAvailable
-      _ <- insertRows(rows)
+      _ <- Database.ensureAvailable
+      _ <- Database.insertEventRows(rows)
       firstPage <- queryService.frontPage(
         feedName = feedName,
         page = 1,
@@ -176,7 +86,7 @@ class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
     val sourceID1 = randomSourceID()
     val sourceID2 = randomSourceID()
 
-    val rows = List(
+    val rows = Chain(
       feedCreated(
         persistedAt = 10L,
         feedName = feedName,
@@ -212,8 +122,8 @@ class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
     )
 
     for {
-      _ <- ensureDatabaseAvailable
-      _ <- insertRows(rows)
+      _ <- Database.ensureAvailable
+      _ <- Database.insertEventRows(rows)
       result <- queryService.frontPage(
         feedName = feedName,
         page = 1,
@@ -224,7 +134,7 @@ class QueryServiceImplUsingSkunkTests extends CatsEffectSuite {
   }
 
   def randomSourceID(): SourceID =
-    SourceID(UUID.randomUUID().toString())
+    SourceID(UUID.randomUUID().show)
 
   final case class ArticleSeed(id: Long, name: String, date: Long)
 

@@ -2,110 +2,21 @@ package news.sipyr.sourcing
 
 import cats.data.Chain
 import cats.effect.{IO, Resource}
-import cats.implicits.*
 import io.circe.Json
 import munit.CatsEffectSuite
-import natchez.Trace.Implicits.noop
 import news.sipyr.events.{
   ArticleDefinition,
   ArticlesAdded,
   EpochSeconds,
   SourceID
 }
-import news.sipyr.eventstore.{EventStream, EventStreams, toEventStreamID}
-import skunk.{Command, Session, Void}
-import skunk.codec.all.*
-import skunk.implicits.*
+import news.sipyr.eventstore.{EventStreams, toEventStreamID}
+import news.sipyr.testutils.Database
 
 import java.net.ConnectException
 import java.util.UUID
 
 class SourcingServiceUsingSkunkTests extends CatsEffectSuite {
-  val databaseHost: String =
-    sys.env.getOrElse("TEST_POSTGRES_HOST", "localhost")
-  val databasePort: Int =
-    sys.env.get("TEST_POSTGRES_PORT").flatMap(_.toIntOption).getOrElse(5432)
-  val databaseUser: String =
-    sys.env.getOrElse("TEST_POSTGRES_USER", "postgres")
-  val databaseName: String =
-    sys.env.getOrElse("TEST_POSTGRES_DATABASE", "postgres")
-  val databasePassword: String =
-    sys.env.getOrElse("TEST_POSTGRES_PASSWORD", "pass")
-
-  val session: Resource[IO, Session[IO]] =
-    Session.single[IO](
-      host = databaseHost,
-      port = databasePort,
-      user = databaseUser,
-      database = databaseName,
-      password = Some(databasePassword)
-    )
-
-  val insertEvent: Command[(Long, String, String, Int, String, String)] =
-    sql"""
-      INSERT INTO event_streams
-      (
-        persisted_at,
-        type_name,
-        stream_name,
-        stream_index,
-        event_type_name,
-        content
-      )
-      VALUES (
-        $int8,
-        ${varchar(64)},
-        ${varchar(128)},
-        $int4,
-        ${varchar(64)},
-        ${text}::json
-      )
-    """.command
-
-  def insertRows(rows: List[EventStreams.EventRow]): IO[Unit] =
-    session.use { s =>
-      s.prepare(insertEvent)
-        .flatMap(command =>
-          rows.traverse_(row =>
-            command
-              .execute(
-                (
-                  row.persistedAt,
-                  row.typeName,
-                  row.streamName,
-                  row.index,
-                  row.eventTypeName,
-                  row.content
-                )
-              )
-              .void
-          )
-        )
-    }
-
-  def ensureDatabaseAvailable: IO[Unit] =
-    session
-      .use(
-        _.prepare(sql"select 1".query(int4)).flatMap(_.unique(Void)).void
-      )
-      .handleErrorWith {
-        case error if isConnectionRefused(error) =>
-          IO.println(
-            "Connection refused while running database integration tests. Start the root docker compose environment before running tests."
-          ) *> IO.raiseError(error)
-        case error =>
-          IO.raiseError(error)
-      }
-
-  def isConnectionRefused(error: Throwable): Boolean =
-    Iterator
-      .iterate(Option(error))(_.flatMap(err => Option(err.getCause)))
-      .takeWhile(_.nonEmpty)
-      .flatten
-      .exists(err =>
-        err.isInstanceOf[ConnectException] ||
-          Option(err.getMessage).exists(_.contains("Connection refused"))
-      )
 
   test("pollOnce appends articlesAdded to the source stream in postgres") {
     val sourceID = SourceID(s"source-${UUID.randomUUID().toString}")
@@ -118,7 +29,7 @@ class SourcingServiceUsingSkunkTests extends CatsEffectSuite {
       date = EpochSeconds(12345L)
     )
 
-    val eventStreams = EventStreams.usingSkunk(session)
+    val eventStreams = EventStreams.usingSkunk(Database.session)
     val sources = Sources.usingEventStreams(eventStreams)
     val underTest = SourcingService.create(
       sources = sources,
@@ -126,9 +37,9 @@ class SourcingServiceUsingSkunkTests extends CatsEffectSuite {
     )
 
     for {
-      _ <- ensureDatabaseAvailable
-      _ <- insertRows(
-        List(
+      _ <- Database.ensureAvailable
+      _ <- Database.insertEventRows(
+        Chain(
           sourceInitialized(persistedAt = 100L, sourceID = sourceID, index = 0)
         )
       )
@@ -144,8 +55,8 @@ class SourcingServiceUsingSkunkTests extends CatsEffectSuite {
         Chain(sourceID -> ArticlesAdded(List(article)))
       )
       assertEquals(
-        hydratedSource.source.articles.toList,
-        List(Article.atLocation(article.url))
+        hydratedSource.source.articles,
+        Chain(Article.atLocation(article.url))
       )
       assertEquals(hydratedSource.nextIndex, 2)
       assertEquals(secondPass._2, Chain.empty)
